@@ -57,6 +57,10 @@ $env:INTERNAL_API_KEY = "与南京网关一致的长随机串"
 
 无需 `X-Internal-Key`。返回 `trader_ready`、`import_error`、`connect_error` 等，便于排查。
 
+### `GET /internal/ping`
+
+需鉴权（若配置了 `INTERNAL_API_KEY`）：请求头 `X-Internal-Key`。不下单，仅返回 `{"ok":true,"service":"jq-relay-agent"}`，供网关 `GET /v1/chain-check` 做全链路探测。
+
 ### `POST /internal/execute`
 
 需鉴权（若配置了 `INTERNAL_API_KEY`）：请求头 `X-Internal-Key: <密钥>`。

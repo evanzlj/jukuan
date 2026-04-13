@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -57,6 +57,21 @@ class HealthResponse(BaseModel):
     internal_api_key_set: bool
 
 
+class ChainCheckResponse(BaseModel):
+    """
+    全链路探测结果。
+    - connectivity_ok：能访问 Agent 的 /health，且 /internal/ping 与密钥配置一致。
+    - qmt_ready：Agent 报告的 miniQMT/交易端是否已就绪（不阻断 connectivity_ok）。
+    """
+
+    connectivity_ok: bool = False
+    qmt_ready: bool = False
+    agent_health: dict[str, Any] | None = None
+    internal_ping_ok: bool = False
+    errors: list[str] = Field(default_factory=list)
+    overall: Literal["ok", "degraded", "fail"] = "fail"
+
+
 _idem_lock = asyncio.Lock()
 _idem_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _IDEM_MAX = 5000
@@ -96,6 +111,76 @@ def health() -> HealthResponse:
         agent_base_url=config.AGENT_BASE_URL,
         gateway_api_key_set=bool(config.GATEWAY_API_KEY),
         internal_api_key_set=bool(config.INTERNAL_API_KEY),
+    )
+
+
+@app.get(
+    "/v1/chain-check",
+    response_model=ChainCheckResponse,
+    dependencies=[Depends(_verify_gateway_key)],
+)
+async def get_v1_chain_check(request: Request) -> ChainCheckResponse:
+    """
+    探测：网关 → Agent /health → Agent /internal/ping（带 X-Internal-Key）。
+    用于确认地址、端口、防火墙与两端密钥配置是否正确；不下单。
+    """
+    client: httpx.AsyncClient = request.app.state.http
+    base = config.AGENT_BASE_URL.rstrip("/")
+    errors: list[str] = []
+    agent_health: dict[str, Any] | None = None
+    qmt_ready = False
+
+    try:
+        rh = await client.get(f"{base}/health")
+        if rh.status_code != 200:
+            errors.append(f"Agent GET /health 返回 HTTP {rh.status_code}: {rh.text[:300]}")
+        else:
+            try:
+                agent_health = rh.json()
+                qmt_ready = bool(agent_health.get("trader_ready"))
+            except Exception:
+                errors.append("Agent /health 响应不是合法 JSON")
+    except httpx.RequestError as e:
+        errors.append(f"无法访问 Agent /health: {e!s}")
+
+    ping_headers: dict[str, str] = {}
+    if config.INTERNAL_API_KEY:
+        ping_headers["X-Internal-Key"] = config.INTERNAL_API_KEY
+
+    internal_ping_ok = False
+    try:
+        rp = await client.get(f"{base}/internal/ping", headers=ping_headers)
+        if rp.status_code == 200:
+            try:
+                body = rp.json()
+                internal_ping_ok = bool(body.get("ok", True))
+            except Exception:
+                internal_ping_ok = True
+        elif rp.status_code == 401:
+            errors.append(
+                "Agent GET /internal/ping 返回 401：请检查网关与 Agent 的 INTERNAL_API_KEY 是否一致"
+            )
+        else:
+            errors.append(f"Agent GET /internal/ping 返回 HTTP {rp.status_code}: {rp.text[:300]}")
+    except httpx.RequestError as e:
+        errors.append(f"无法访问 Agent /internal/ping: {e!s}")
+
+    connectivity_ok = agent_health is not None and internal_ping_ok
+
+    if connectivity_ok and qmt_ready:
+        overall: Literal["ok", "degraded", "fail"] = "ok"
+    elif connectivity_ok:
+        overall = "degraded"
+    else:
+        overall = "fail"
+
+    return ChainCheckResponse(
+        connectivity_ok=connectivity_ok,
+        qmt_ready=qmt_ready,
+        agent_health=agent_health,
+        internal_ping_ok=internal_ping_ok,
+        errors=errors,
+        overall=overall,
     )
 
 

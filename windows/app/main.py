@@ -53,6 +53,13 @@ class HealthResponse(BaseModel):
     connect_error: str | None = None
 
 
+class PingResponse(BaseModel):
+    """不触发下单，仅用于网关 / 运维探测内网鉴权是否一致。"""
+
+    ok: bool = True
+    service: str = "jq-relay-agent"
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     from app.xtquant_bootstrap import init_xtquant_path
@@ -82,6 +89,15 @@ def health() -> HealthResponse:
         import_error=trader_service.get_import_error(),
         connect_error=trader_service.get_connect_error(),
     )
+
+
+@app.get(
+    "/internal/ping",
+    response_model=PingResponse,
+    dependencies=[Depends(_verify_internal_key)],
+)
+def internal_ping() -> PingResponse:
+    return PingResponse()
 
 
 @app.post(

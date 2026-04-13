@@ -49,6 +49,15 @@ curl.exe -s -H "X-API-Key: gw-dev" -H "Content-Type: application/json" `
 ## 接口
 
 - `GET /health` — 无需 `X-API-Key`。
+- `GET /v1/chain-check` — 需 `X-API-Key`（若配置了 `GATEWAY_API_KEY`）。依次请求 Agent 的 `/health` 与 `/internal/ping`，确认 **网关→Agent 网络**、**INTERNAL 密钥** 与（可选）**QMT 是否已连接**；不下单。
 - `POST /v1/intents` — Body 字段与 `windows` Agent 的 JSON 一致（`intent_id`、`symbol`、`side`、`volume` 等）。
+
+**联调示例（先起 Agent，再起网关）：**
+
+```powershell
+curl.exe -s -H "X-API-Key: gw-dev" http://127.0.0.1:9090/v1/chain-check
+```
+
+响应字段说明：`connectivity_ok` 为真表示 HTTP + 内网密钥链路通；`qmt_ready` 为真表示 Agent 侧已连上交易端；`overall` 为 `ok` / `degraded`（通但 QMT 未就绪）/ `fail`。
 
 聚宽策略里把原来的下单逻辑改成 `requests.post("https://你的域名/v1/intents", headers={"X-API-Key": "..."}, json={...})` 即可（南京上线后换 URL）。

@@ -25,9 +25,9 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
-# 监听（单机验证：127.0.0.1:8080 只本机访问）
+# 监听（单机验证：127.0.0.1:9090 只本机访问）
 GATEWAY_BIND_HOST = os.getenv("GATEWAY_BIND_HOST", "0.0.0.0").strip()
-GATEWAY_BIND_PORT = _env_int("GATEWAY_BIND_PORT", 8080)
+GATEWAY_BIND_PORT = _env_int("GATEWAY_BIND_PORT", 9090)
 
 # 聚宽 / 公网客户端调用网关时携带；非空则要求 X-API-Key
 GATEWAY_API_KEY = os.getenv("GATEWAY_API_KEY", "").strip()

@@ -6,7 +6,7 @@
   终端2 — 网关：cd gateway && set GATEWAY_API_KEY=gw && set INTERNAL_API_KEY=dev && python -m app.main
   curl -H \"X-API-Key: gw\" -H \"Content-Type: application/json\" ^
     -d \"{\\\"intent_id\\\":\\\"t1\\\",\\\"symbol\\\":\\\"600000.SH\\\",\\\"side\\\":\\\"buy\\\",\\\"volume\\\":100,\\\"price_type\\\":\\\"limit\\\",\\\"price\\\":10.0}\" ^
-    http://127.0.0.1:8080/v1/intents
+    http://127.0.0.1:9090/v1/intents
 """
 
 from __future__ import annotations

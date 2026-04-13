@@ -18,7 +18,7 @@ py -3.11 -m venv .venv
 
 | 变量 | 说明 |
 |------|------|
-| `GATEWAY_BIND_HOST` / `GATEWAY_BIND_PORT` | 网关监听，默认 `0.0.0.0:8080` |
+| `GATEWAY_BIND_HOST` / `GATEWAY_BIND_PORT` | 网关监听，默认 `0.0.0.0:9090` |
 | `GATEWAY_API_KEY` | 非空时，请求须带 `X-API-Key` |
 | `AGENT_BASE_URL` | Agent 根地址，默认 `http://127.0.0.1:9780` |
 | `INTERNAL_API_KEY` | 与 `windows` Agent 的 `INTERNAL_API_KEY` 相同；转发时带 `X-Internal-Key` |
@@ -41,7 +41,7 @@ $env:INTERNAL_API_KEY = "与 Agent 相同"
 ```powershell
 curl.exe -s -H "X-API-Key: gw-dev" -H "Content-Type: application/json" `
   -d "{\"intent_id\":\"local-test-1\",\"symbol\":\"600000.SH\",\"side\":\"buy\",\"volume\":100,\"price_type\":\"limit\",\"price\":10.0}" `
-  http://127.0.0.1:8080/v1/intents
+  http://127.0.0.1:9090/v1/intents
 ```
 
 `GET /health` 可查看是否配置了 `GATEWAY_API_KEY`、`AGENT_BASE_URL`。

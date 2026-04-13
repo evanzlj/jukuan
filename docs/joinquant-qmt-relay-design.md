@@ -94,7 +94,10 @@ flowchart LR
 
 **与现有 `qmt_data_server` 的关系**：行情 HTTP 服务可继续独立运行；Agent **专注交易**，避免与行情服务混在同一进程导致重启影响面过大（也可同机不同端口）。
 
-**本仓库参考实现**：`windows/` 目录（FastAPI + XtQuantTrader，`POST /internal/execute`）。
+**本仓库参考实现**：
+
+- `windows/`：Agent（FastAPI + XtQuantTrader，`POST /internal/execute`）。
+- `gateway/`：网关（FastAPI + httpx 转发 `POST /v1/intents`）；可在 **本机 Windows** 与 Agent 联调，也可部署到南京。
 
 ---
 
